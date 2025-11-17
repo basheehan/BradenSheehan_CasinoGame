@@ -29,25 +29,25 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  12 .ARM.attributes 00000030  00000000  00000000  0000a080  2**0
                   CONTENTS, READONLY
- 13 .debug_info   00011433  00000000  00000000  0000a0b0  2**0
+ 13 .debug_info   000114a0  00000000  00000000  0000a0b0  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_abbrev 00002f45  00000000  00000000  0001b4e3  2**0
+ 14 .debug_abbrev 00002f44  00000000  00000000  0001b550  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_aranges 000010a8  00000000  00000000  0001e428  2**3
+ 15 .debug_aranges 000010b0  00000000  00000000  0001e498  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_rnglists 00000cad  00000000  00000000  0001f4d0  2**0
+ 16 .debug_rnglists 00000cb3  00000000  00000000  0001f548  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_macro  00026fbb  00000000  00000000  0002017d  2**0
+ 17 .debug_macro  00026fbb  00000000  00000000  000201fb  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_line   00015309  00000000  00000000  00047138  2**0
+ 18 .debug_line   00015335  00000000  00000000  000471b6  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    000e5fea  00000000  00000000  0005c441  2**0
+ 19 .debug_str    000e6003  00000000  00000000  0005c4eb  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 20 .comment      00000043  00000000  00000000  0014242b  2**0
+ 20 .comment      00000043  00000000  00000000  001424ee  2**0
                   CONTENTS, READONLY
- 21 .debug_frame  00004fb0  00000000  00000000  00142470  2**2
+ 21 .debug_frame  00004fd4  00000000  00000000  00142534  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 22 .debug_line_str 0000008b  00000000  00000000  00147420  2**0
+ 22 .debug_line_str 0000008b  00000000  00000000  00147508  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -1247,6 +1247,9 @@ void LCD_Draw_Vertical_Line(uint16_t x, uint16_t y, uint16_t len, uint32_t color
  8000ad6:	bd80      	pop	{r7, pc}
 
 08000ad8 <LCD_Clear>:
+			LCD_Draw_Pixel(x+i, y, color);
+		}
+}
 
 void LCD_Clear(uint32_t Color)
 {
