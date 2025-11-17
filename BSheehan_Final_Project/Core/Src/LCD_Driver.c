@@ -317,6 +317,38 @@ void LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, uint8_t Ascii)
   LCD_Draw_Char(Xpos, Ypos, &LCD_Currentfonts->table[Ascii * LCD_Currentfonts->Height]);
 }
 
+void LCD_Draw_Rectangle(uint16_t x, uint16_t y,
+                        uint16_t w, uint16_t h,
+                        uint32_t color)
+{
+    // top
+    LCD_Draw_Horizontal_Line(x,         y,         w, color);
+    // bottom
+    LCD_Draw_Horizontal_Line(x,         y + h - 1, w, color);
+    // left
+    LCD_Draw_Vertical_Line  (x,         y,         h, color);
+    // right
+    LCD_Draw_Vertical_Line  (x + w - 1, y,         h, color);
+}
+
+void LCD_Fill_Recticle(uint16_t x, uint16_t y,
+                       uint16_t w, uint16_t h,
+                       uint32_t color)
+{
+	for (uint16_t i = 0; i < h; i++) {
+        LCD_Draw_Horizontal_Line(x, y + i, w, color);
+    }
+}
+
+void LCD_Draw_String(uint16_t x, uint16_t y, const char *str);
+
+void LCD_Draw_Button(uint16_t x, uint16_t y,
+                     uint16_t w, uint16_t h,
+                     uint32_t bgColor,
+                     uint32_t borderColor,
+                     uint32_t textColor,
+                     const char *label);
+
 void visualDemo(void)
 {
 	for(uint16_t x = 0; x < (LCD_PIXEL_WIDTH_X/5)-1; x++){
