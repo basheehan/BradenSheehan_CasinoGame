@@ -97,48 +97,14 @@ void LCD_Fill_Recticle(uint16_t x, uint16_t y,
                        uint16_t w, uint16_t h,
                        uint32_t color);
 
-                       void LCD_Draw_String(uint16_t x, uint16_t y, const char *str)
-{
-    while (*str != '\0') {
-        LCD_DisplayChar(x, y, (uint8_t)*str);
-        x += LCD_Currentfonts->Width;   // advance by font width
-        str++;
-    }
-}
+void LCD_Draw_String(uint16_t x, uint16_t y, const char *str);
 
 void LCD_Draw_Button(uint16_t x, uint16_t y,
                      uint16_t w, uint16_t h,
                      uint32_t bgColor,
                      uint32_t borderColor,
                      uint32_t textColor,
-                     const char *label)
-{
-    // background
-    LCD_Fill_Rectangle(x, y, w, h, bgColor);
-
-    // border
-    LCD_Draw_Rectangle(x, y, w, h, borderColor);
-
-    // set font and text color (you can choose whichever font you want globally)
-    LCD_SetTextColor(textColor);
-
-    // crude centering: assume Font16x24 for now
-    uint16_t charW = LCD_Currentfonts->Width;
-    uint16_t charH = LCD_Currentfonts->Height;
-
-    // length of label
-    uint16_t len = 0;
-    const char *p = label;
-    while (*p++) len++;
-
-    uint16_t textWidth  = len * charW;
-    uint16_t textHeight = charH;
-
-    uint16_t textX = x + (w - textWidth)  / 2;
-    uint16_t textY = y + (h - textHeight) / 2;
-
-    LCD_Draw_String(textX, textY, label);
-}
+                     const char *label);
 
 // Demo using provided functions
 void visualDemo(void);

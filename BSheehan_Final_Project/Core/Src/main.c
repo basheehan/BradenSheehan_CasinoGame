@@ -21,7 +21,6 @@
 
 static void SystemClock_Config(void);
 
-
 /* Private functions ---------------------------------------------------------*/
 
 /**
@@ -33,10 +32,11 @@ int main(void)
 {
   /* STM32F4xx HAL library initialization:
        - Configure the Flash prefetch, instruction and Data caches
-       - Configure the Systick to generate an interrupt each 1 msec, each time incrementing uWtick. YOU CANNOT USE SYSTICK in interrupts. (No delay() and you cant wait and compare getTick(). Uou can access getTick(), but it wont increment inside a irq handler.
+       - Configure the Systick to generate an interrupt each 1 msec, each time incrementing uWtick.
        - Set NVIC Group Priority to 4
        - Global MSP (MCU Support Package) initialization
      */
+
   HAL_Init();
 
   /* Configure the system clock to 168 MHz */
@@ -44,13 +44,18 @@ int main(void)
 
   ApplicationInit();
 
-  LCD_Visual_Demo();
+  //LCD_Visual_Demo();
+  
+  GameDriver_MainLoop();   // never returns
 
   HAL_Delay(5000);
 
   // DO NOT CALL THIS FUNCTION WHEN INTERRUPT MODE IS SELECTED IN THE COMPILE SWITCH IN stmpe811.h
   // Un-comment the below function after setting COMPILE_TOUCH to 1 in stmpe811.h
-  LCD_Touch_Polling_Demo(); // This function Will not return
+
+  // IF YOU WANT THE TOUCH DEMO UNCOMMENT THE LINE BELOW
+
+  //LCD_Touch_Polling_Demo(); // This function Will not return
 
   while (1)
   {
@@ -103,9 +108,10 @@ static void SystemClock_Config(void)
 
   /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
      clocks dividers */
-  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.ClockType = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+                                 RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2);
+  RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
   HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5);
@@ -143,11 +149,3 @@ void assert_failed(uint8_t* file, uint32_t line)
   }
 }
 #endif
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
