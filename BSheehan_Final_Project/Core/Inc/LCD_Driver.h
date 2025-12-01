@@ -93,11 +93,11 @@ void LCD_Draw_Rectangle(uint16_t x, uint16_t y,
                         uint16_t w, uint16_t h,
                         uint32_t color);
 
-void LCD_Fill_Recticle(uint16_t x, uint16_t y,
+void LCD_Fill_Rectangle(uint16_t x, uint16_t y,
                        uint16_t w, uint16_t h,
                        uint32_t color);
 
-void LCD_Draw_String(uint16_t x, uint16_t y, const char *str);
+                       void LCD_Draw_String(uint16_t x, uint16_t y, const char *str);
 
 void LCD_Draw_Button(uint16_t x, uint16_t y,
                      uint16_t w, uint16_t h,
@@ -105,6 +105,7 @@ void LCD_Draw_Button(uint16_t x, uint16_t y,
                      uint32_t borderColor,
                      uint32_t textColor,
                      const char *label);
+
 
 // Demo using provided functions
 void visualDemo(void);

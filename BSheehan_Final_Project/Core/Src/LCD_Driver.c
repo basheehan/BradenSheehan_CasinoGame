@@ -266,12 +266,6 @@ void LCD_Draw_Vertical_Line(uint16_t x, uint16_t y, uint16_t len, uint32_t color
 	  LCD_Draw_Pixel(x, i+y, color);
   }
 }
-void  LCD_Draw_Horizontal_Line(uint16_t x, uint16_t y, uint16_t len, uint32_t color){
-		for (uint16_t i = 0; i < len; i++)
-		{
-			LCD_Draw_Pixel(x+i, y, color);
-		}
-}
 
 void LCD_Clear(uint32_t Color)
 {
@@ -281,7 +275,7 @@ void LCD_Clear(uint32_t Color)
 //This was taken and adapted from stm32's mcu code
 void LCD_SetTextColor(uint32_t Color)
 {
-  CurrentTextColor = Color;
+  CurrentTextColor = (uint16_t)Color;
 }
 
 //This was taken and adapted from stm32's mcu code
@@ -317,38 +311,62 @@ void LCD_DisplayChar(uint16_t Xpos, uint16_t Ypos, uint8_t Ascii)
   LCD_Draw_Char(Xpos, Ypos, &LCD_Currentfonts->table[Ascii * LCD_Currentfonts->Height]);
 }
 
+/* ======================================================================
+ *  CUSTOM HELPER FUNCTIONS (added back in)
+ * ====================================================================*/
+
+/* Horizontal line using Draw_Pixel */
+void LCD_Draw_Horizontal_Line(uint16_t x, uint16_t y, uint16_t len, uint32_t color)
+{
+    for (uint16_t i = 0; i < len; i++) {
+        LCD_Draw_Pixel(x + i, y, color);
+    }
+}
+
+/* Rectangle outline using horizontal + vertical lines */
 void LCD_Draw_Rectangle(uint16_t x, uint16_t y,
                         uint16_t w, uint16_t h,
                         uint32_t color)
 {
+    if (w == 0 || h == 0) {
+        return;
+    }
+
     // top
-    LCD_Draw_Horizontal_Line(x,         y,         w, color);
+    LCD_Draw_Horizontal_Line(x, y, w, color);
     // bottom
-    LCD_Draw_Horizontal_Line(x,         y + h - 1, w, color);
+    LCD_Draw_Horizontal_Line(x, y + h - 1, w, color);
     // left
-    LCD_Draw_Vertical_Line  (x,         y,         h, color);
+    LCD_Draw_Vertical_Line  (x, y, h, color);
     // right
-    LCD_Draw_Vertical_Line  (x + w - 1, y,         h, color);
+    LCD_Draw_Vertical_Line  (x + w - 1, y,h, color);
 }
 
+/* Filled rectangle helper */
 void LCD_Fill_Rectangle(uint16_t x, uint16_t y,
                        uint16_t w, uint16_t h,
                        uint32_t color)
 {
-	for (uint16_t i = 0; i < h; i++) {
-        LCD_Draw_Horizontal_Line(x, y + i, w, color);
+    for (uint16_t row = 0; row < h; row++) {
+        LCD_Draw_Horizontal_Line(x, y + row, w, color);
     }
 }
 
+/* Draw a string using current font and text color */
 void LCD_Draw_String(uint16_t x, uint16_t y, const char *str)
 {
-    while (*str != '\0') {
+    if (LCD_Currentfonts == NULL || str == NULL) {
+        return;
+    }
+
+    while (*str) {
         LCD_DisplayChar(x, y, (uint8_t)*str);
         x += LCD_Currentfonts->Width;   // advance by font width
         str++;
     }
 }
 
+/* Draw a simple rectangular button with centered text */
 void LCD_Draw_Button(uint16_t x, uint16_t y,
                      uint16_t w, uint16_t h,
                      uint32_t bgColor,
@@ -356,32 +374,38 @@ void LCD_Draw_Button(uint16_t x, uint16_t y,
                      uint32_t textColor,
                      const char *label)
 {
-    // background
+    if (LCD_Currentfonts == NULL || label == NULL) {
+        return;
+    }
+
+    /* Draw filled background */
     LCD_Fill_Rectangle(x, y, w, h, bgColor);
 
-    // border
+    /* Draw border */
     LCD_Draw_Rectangle(x, y, w, h, borderColor);
 
-    // set font and text color (you can choose whichever font you want globally)
-    LCD_SetTextColor(textColor);
+    /* Compute text position (centered) */
+    uint16_t len = 0;
+    const char *p = label;
+    while (*p++) {
+        len++;
+    }
 
-    // crude centering: assume Font16x24 for now
     uint16_t charW = LCD_Currentfonts->Width;
     uint16_t charH = LCD_Currentfonts->Height;
 
-    // length of label
-    uint16_t len = 0;
-    const char *p = label;
-    while (*p++) len++;
+    uint16_t textW = len * charW;
+    uint16_t textX = x + (uint16_t)((int16_t)(w - textW) / 2);
+    uint16_t textY = y + (uint16_t)((int16_t)(h - charH) / 2);
 
-    uint16_t textWidth  = len * charW;
-    uint16_t textHeight = charH;
-
-    uint16_t textX = x + (w - textWidth)  / 2;
-    uint16_t textY = y + (h - textHeight) / 2;
-
+    /* Draw text */
+    LCD_SetTextColor(textColor);
     LCD_Draw_String(textX, textY, label);
 }
+
+/* ======================================================================
+ *  END CUSTOM HELPERS
+ * ====================================================================*/
 
 void visualDemo(void)
 {

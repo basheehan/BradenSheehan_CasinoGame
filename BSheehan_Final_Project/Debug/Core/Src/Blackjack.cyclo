@@ -1,4 +1,0 @@
-../Core/Src/Blackjack.c:15:6:Blackjack_CardFromId	1
-../Core/Src/Blackjack.c:24:9:Blackjack_DrawCardId	1
-../Core/Src/Blackjack.c:32:6:Blackjack_DrawCard	1
-../Core/Src/Blackjack.c:39:6:Blackjack_DrawCardOnScreen	2

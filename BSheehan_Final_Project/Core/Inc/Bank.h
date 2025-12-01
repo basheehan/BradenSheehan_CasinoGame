@@ -2,6 +2,4 @@
 #define BANK_H_
 
 
-
-
 #endif
