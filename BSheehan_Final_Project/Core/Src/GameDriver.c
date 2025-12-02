@@ -30,8 +30,8 @@ void GameDriver_Init(void)
     gAppState = APP_STATE_HOME;
     gLastTouchTime = 0;
     LCD_SetFont(&Font12x12);
-
     Bank_Init();
+    CheatCode_Init();
 
     DrawHomeScreen();
 }
@@ -40,6 +40,13 @@ void GameDriver_MainLoop(void)
 {
     while (1)
     {
+        // check for cheats
+        if (gAppState == APP_STATE_HOME)
+        {
+            uint8_t btnPressed =
+                (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_SET) ? 1u : 0u;
+            CheatCode_Update(btnPressed, HAL_GetTick());
+        }
         // Poll the touch controller using the SAME helper as the touch demo
         STMPE811_State_t tstate = returnTouchStateAndLocation(&gTouchData);
 
@@ -97,11 +104,10 @@ void GameDriver_MainLoop(void)
                             break;
                         }
 
-                        // mark that we are now in a round
+                        // Mark that we are now in a round
                         gBlackjackRoundActive = 1;
 
-                        Blackjack_StartNewRound();
-                        // now draw the full round view (table + hands + exit)
+                        // DrawBlackjackRoundScreen will call Blackjack_StartNewRound()
                         DrawBlackjackRoundScreen();
                     }
 

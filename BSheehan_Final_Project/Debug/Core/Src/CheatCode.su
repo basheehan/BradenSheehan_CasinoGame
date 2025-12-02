@@ -1,0 +1,6 @@
+../Core/Src/CheatCode.c:19:6:CheatCode_Init	32	static
+../Core/Src/CheatCode.c:39:13:CheatCode_ResetSequence	16	static
+../Core/Src/CheatCode.c:45:6:CheatCode_Update	24	static
+../Core/Src/CheatCode.c:116:6:CheatCode_IsArmed	4	static
+../Core/Src/CheatCode.c:121:6:CheatCode_Consume	4	static
+../Core/Src/CheatCode.c:126:6:CheatCode_IsSequenceInProgress	4	static

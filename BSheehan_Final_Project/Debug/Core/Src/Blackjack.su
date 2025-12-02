@@ -11,9 +11,11 @@
 ../Core/Src/Blackjack.c:202:6:Blackjack_Reset	8	static
 ../Core/Src/Blackjack.c:219:6:Blackjack_DrawStatus	40	static
 ../Core/Src/Blackjack.c:255:6:Blackjack_DrawHands	64	static
-../Core/Src/Blackjack.c:357:6:Blackjack_InitGame	8	static
-../Core/Src/Blackjack.c:374:6:Blackjack_DrawTable	32	static
-../Core/Src/Blackjack.c:409:6:Blackjack_StartNewRound	16	static
-../Core/Src/Blackjack.c:442:6:Blackjack_PlayerHit	16	static
-../Core/Src/Blackjack.c:504:6:Blackjack_PlayerStand	16	static
-../Core/Src/Blackjack.c:579:6:Blackjack_HandleTouch	32	static
+../Core/Src/Blackjack.c:355:16:BJ_IsTenValue	16	static
+../Core/Src/Blackjack.c:368:13:BJ_ForceNextPlayerBlackjack	24	static
+../Core/Src/Blackjack.c:417:6:Blackjack_InitGame	8	static
+../Core/Src/Blackjack.c:434:6:Blackjack_DrawTable	32	static
+../Core/Src/Blackjack.c:469:6:Blackjack_StartNewRound	16	static
+../Core/Src/Blackjack.c:508:6:Blackjack_PlayerHit	16	static
+../Core/Src/Blackjack.c:570:6:Blackjack_PlayerStand	16	static
+../Core/Src/Blackjack.c:645:6:Blackjack_HandleTouch	32	static

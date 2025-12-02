@@ -9,6 +9,7 @@
 #include "stm32f4xx_hal.h"
 #include "Blackjack.h"
 #include "Bank.h"
+#include "CheatCode.h"
 
 #define TOUCH_DEBOUNCE_MS 200U
 

@@ -2,6 +2,7 @@
 "./Core/Src/Bank.o"
 "./Core/Src/Blackjack.o"
 "./Core/Src/ButtonControl.o"
+"./Core/Src/CheatCode.o"
 "./Core/Src/GameDriver.o"
 "./Core/Src/LCD_Driver.o"
 "./Core/Src/Roulette.o"

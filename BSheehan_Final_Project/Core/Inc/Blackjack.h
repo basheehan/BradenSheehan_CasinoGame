@@ -7,6 +7,7 @@
 #include <stdlib.h> // rand, srand
 #include <stdio.h>  // snprintf
 #include "Bank.h"
+#include "CheatCode.h"
 
 
 // -------- Card definitions --------
@@ -78,6 +79,12 @@ void Blackjack_StartNewRound(void);
 // Player actions
 void Blackjack_PlayerHit(void);
 void Blackjack_PlayerStand(void);
+
+//cheats
+static uint8_t BJ_IsTenValue(CardRank rank);
+static void BJ_ForceNextPlayerBlackjack(void);
+
+
 
 // Drawing helpers
 void Blackjack_DrawHands(void);

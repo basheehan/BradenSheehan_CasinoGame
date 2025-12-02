@@ -186,12 +186,12 @@ static void BJ_SetStatus(const char *msg)
 void Blackjack_StartRound(void)
 {
     printf("Blackjack_StartRound() called\r\n");
-
-    // For now, just reset and redraw the "ready" state.
-    // Later you can:
-    //  - shuffle / draw cards
-    //  - compute hand values
-    //  - call Blackjack_DrawTable(), Blackjack_DrawHands(), Blackjack_DrawStatus(), etc.
+    if (CheatCode_IsArmed())
+    {
+        printf("BJ cheat: armed, forcing blackjack\r\n");
+        BJ_ForceNextPlayerBlackjack();
+        CheatCode_Consume();
+    }
 
     Blackjack_Reset();
     Blackjack_DrawTable();
@@ -350,9 +350,69 @@ void Blackjack_DrawHands(void)
     printf("BJ_DrawHands: EXIT\r\n");
 }
 
-// ---------------------
-//  Public API
-// ---------------------
+//cheats
+
+static uint8_t BJ_IsTenValue(CardRank rank)
+{
+    switch (rank)
+    {
+    case RANK_JACK:
+    case RANK_QUEEN:
+    case RANK_KING:
+        return 1u;
+    default:
+        return (rank >= 10) ? 1u : 0u;
+    }
+}
+
+static void BJ_ForceNextPlayerBlackjack(void)
+{
+    uint8_t i;
+
+    // Find an Ace from current deckIndex forward
+    int8_t aceIndex = -1;
+    for (i = gBJ.deckIndex; i < 52U; ++i)
+    {
+        if (gBJ.deck[i].rank == RANK_ACE)
+        {
+            aceIndex = (int8_t)i;
+            break;
+        }
+    }
+
+    // Put Ace at deckIndex (P1)
+    if (aceIndex >= 0 && aceIndex != (int8_t)gBJ.deckIndex)
+    {
+        Card tmp = gBJ.deck[gBJ.deckIndex];
+        gBJ.deck[gBJ.deckIndex] = gBJ.deck[aceIndex];
+        gBJ.deck[aceIndex] = tmp;
+    }
+
+    // Find a 10-value card for P2 at deckIndex+2
+    uint8_t start = gBJ.deckIndex + 1U;
+    int8_t tenIndex = -1;
+    for (i = start; i < 52U; ++i)
+    {
+        if (BJ_IsTenValue(gBJ.deck[i].rank))
+        {
+            tenIndex = (int8_t)i;
+            break;
+        }
+    }
+
+    if (tenIndex >= 0)
+    {
+        uint8_t playerSecondPos = gBJ.deckIndex + 2U;
+        if (playerSecondPos < 52U && tenIndex != (int8_t)playerSecondPos)
+        {
+            Card tmp = gBJ.deck[playerSecondPos];
+            gBJ.deck[playerSecondPos] = gBJ.deck[tenIndex];
+            gBJ.deck[tenIndex] = tmp;
+        }
+    }
+}
+
+//helpers
 
 void Blackjack_InitGame(void)
 {
@@ -370,7 +430,7 @@ void Blackjack_InitGame(void)
     BJ_SetStatus("Welcome to Blackjack");
 }
 
-// Draw static table + buttons (no cards yet)
+// Draw table and buttons
 void Blackjack_DrawTable(void)
 {
     // Table background
@@ -415,6 +475,13 @@ void Blackjack_StartNewRound(void)
         BJ_ShuffleDeck();
     }
     printf("shuffle deck\r\n");
+    
+    // If cheat code is armed, rig next hand as blackjack for player
+    if (CheatCode_IsArmed())
+    {
+        BJ_ForceNextPlayerBlackjack();
+        CheatCode_Consume();
+    }
 
     gBJ.playerCardCount = 0;
     gBJ.dealerCardCount = 0;
@@ -438,7 +505,6 @@ void Blackjack_StartNewRound(void)
     printf("set player turn\r\n");
 }
 
-// Player chooses Hit
 void Blackjack_PlayerHit(void)
 {
     printf("BJ_PlayerHit: entry, state=%d, pCount=%u, pTotal=%d\r\n",
@@ -500,7 +566,7 @@ void Blackjack_PlayerHit(void)
     printf("BJ_PlayerHit: exit, state=%d\r\n", (int)gBJ.state);
 }
 
-// Player chooses Stand (dealer plays out)
+
 void Blackjack_PlayerStand(void)
 {
     printf("BJ_PlayerStand: entry, state=%d, dTotal=%d, pTotal=%d\r\n",
