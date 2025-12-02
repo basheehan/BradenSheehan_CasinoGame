@@ -7,6 +7,7 @@
 #include "fonts.h"
 #include "stmpe811.h"     // touch controller api
 #include "stm32f4xx_hal.h"
+#include "Blackjack.h"
 
 #define TOUCH_DEBOUNCE_MS 200U
 

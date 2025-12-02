@@ -86,11 +86,14 @@ void GameDriver_MainLoop(void)
                     else if (!gBlackjackRoundActive &&
                              Button_HitTest(&gBlackjackStartBtn, tx, ty))
                     {
-
                         printf("Blackjack: Start Round button hit\r\n");
-                        gBlackjackRoundActive = 1;   
 
-                        DrawBlackjackRoundScreen(); // now in active round view
+                        // mark that we are now in a round
+                        gBlackjackRoundActive = 1;
+                        
+                        Blackjack_StartNewRound();
+                        // now draw the full round view (table + hands + exit)
+                        DrawBlackjackRoundScreen();
                     }
                     // If a round is active, send touch to Blackjack engine for Hit/Stand/New
                     else if (gBlackjackRoundActive)
@@ -170,6 +173,8 @@ static void DrawHomeScreen(void)
 
 static void DrawBlackjackScreen(void)
 {
+        printf("GD: Enter DrawBlackjackScreen (menu)\r\n");
+
     gBlackjackRoundActive = 0;
 
     // Optional: clear/reset internal blackjack state
@@ -195,23 +200,44 @@ static void DrawBlackjackScreen(void)
         gBlackjackExitBtn.w, gBlackjackExitBtn.h,
         LCD_COLOR_LIGHTGRAY, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
         "Exit");
+            printf("GD: Leave DrawBlackjackScreen (menu drawn)\r\n");
+
 }
 // drawing screen for mid round
 static void DrawBlackjackRoundScreen(void)
 {
+    printf("GD: Enter DrawBlackjackRoundScreen\r\n");
+
+    // Mark that we are in the round UI
     gBlackjackRoundActive = 1;
 
-    // Draw the Blackjack table (background + Hit/Stand/New buttons)
+    // NEW: start a fresh round (deal cards, set totals/state/status)
+    printf("GD: Calling Blackjack_StartNewRound\r\n");
+    Blackjack_StartNewRound();
+    printf("GD: Returned from Blackjack_StartNewRound\r\n");
+
+    // Table background + Hit/Stand/New buttons
+    printf("GD: Calling Blackjack_DrawTable\r\n");
     Blackjack_DrawTable();
+    printf("GD: Returned from Blackjack_DrawTable\r\n");
 
+    // Dealer + player cards and status line
+    printf("GD: Calling Blackjack_DrawHands\r\n");
+    Blackjack_DrawHands();
+    printf("GD: Returned from Blackjack_DrawHands\r\n");
 
-    // Draw exit button on top of the table
+    // Exit button (top-right)
     LCD_Draw_Button(
         gBlackjackExitBtn.x, gBlackjackExitBtn.y,
         gBlackjackExitBtn.w, gBlackjackExitBtn.h,
         LCD_COLOR_LIGHTGRAY, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
         "Exit");
+
+    printf("GD: Leave DrawBlackjackRoundScreen (round UI drawn)\r\n");
 }
+
+
+
 
 static void DrawRouletteScreen(void)
 {
