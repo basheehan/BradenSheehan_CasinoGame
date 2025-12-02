@@ -29,4 +29,11 @@ typedef enum {
 void GameDriver_Init(void);
 void GameDriver_MainLoop(void);
 
+static uint8_t Button_HitTest(const Button_t *btn, uint16_t x, uint16_t y);
+static void DrawHomeScreen(void);
+static void DrawBlackjackScreen(void);
+static void DrawRouletteScreen(void);
+static void DebugPrintTouch(uint16_t x, uint16_t y, STMPE811_State_t state);
+static void DrawBlackjackRoundScreen(void);
+
 #endif

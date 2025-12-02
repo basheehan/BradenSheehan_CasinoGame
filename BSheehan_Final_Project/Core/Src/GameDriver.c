@@ -11,15 +11,15 @@ static Button_t gHomeBlackjackBtn = {0, 200, 120, 100};
 static Button_t gHomeRouletteBtn = {120, 200, 120, 100};
 
 // Exit buttons
-static Button_t gBlackjackExitBtn = {80, 260, 160, 40};
-static Button_t gRouletteExitBtn = {80, 260, 160, 40};
+static Button_t gBlackjackExitBtn = {180, 0, 60, 40};
+static Button_t gRouletteExitBtn = {180, 0, 60, 40};
 
-// forward declarations
-static uint8_t Button_HitTest(const Button_t *btn, uint16_t x, uint16_t y);
-static void DrawHomeScreen(void);
-static void DrawBlackjackScreen(void);
-static void DrawRouletteScreen(void);
-static void DebugPrintTouch(uint16_t x, uint16_t y, STMPE811_State_t state);
+// start buttons
+
+static Button_t gBlackjackStartBtn = {40, 200, 160, 100};
+static Button_t gRouletteStartBtn = {40, 200, 160, 100};
+
+static uint8_t gBlackjackRoundActive = 0; // used to track if inside a round
 
 void GameDriver_Init(void)
 {
@@ -62,8 +62,10 @@ void GameDriver_MainLoop(void)
                 case APP_STATE_HOME:
                     if (Button_HitTest(&gHomeBlackjackBtn, tx, ty))
                     {
+                        printf("Blackjack button hit\r\n");
+                        Blackjack_InitGame(); // build + shuffle deck, set initial status
                         gAppState = APP_STATE_BLACKJACK;
-                        DrawBlackjackScreen();
+                        DrawBlackjackScreen(); // show menu (Start Round + Exit)
                     }
                     else if (Button_HitTest(&gHomeRouletteBtn, tx, ty))
                     {
@@ -73,10 +75,27 @@ void GameDriver_MainLoop(void)
                     break;
 
                 case APP_STATE_BLACKJACK:
+                    // Exit button always works
                     if (Button_HitTest(&gBlackjackExitBtn, tx, ty))
                     {
+                        printf("Blackjack: Exit button hit\r\n");
                         gAppState = APP_STATE_HOME;
                         DrawHomeScreen();
+                    }
+                    // If we’re on the menu (no round active yet)
+                    else if (!gBlackjackRoundActive &&
+                             Button_HitTest(&gBlackjackStartBtn, tx, ty))
+                    {
+
+                        printf("Blackjack: Start Round button hit\r\n");
+                        gBlackjackRoundActive = 1;   
+
+                        DrawBlackjackRoundScreen(); // now in active round view
+                    }
+                    // If a round is active, send touch to Blackjack engine for Hit/Stand/New
+                    else if (gBlackjackRoundActive)
+                    {
+                        Blackjack_HandleTouch(tx, ty);
                     }
                     break;
 
@@ -151,10 +170,42 @@ static void DrawHomeScreen(void)
 
 static void DrawBlackjackScreen(void)
 {
+    gBlackjackRoundActive = 0;
+
+    // Optional: clear/reset internal blackjack state
+    Blackjack_Reset();
+
+    // Green background + title
     LCD_Clear(LCD_COLOR_DARKGREEN);
     LCD_SetTextColor(LCD_COLOR_WHITE);
     LCD_Draw_String(20, 20, "Blackjack");
 
+    // "Start Round" button
+    LCD_Draw_Button(
+        gBlackjackStartBtn.x, gBlackjackStartBtn.y,
+        gBlackjackStartBtn.w, gBlackjackStartBtn.h,
+        LCD_COLOR_LIGHTGREEN, // fill
+        LCD_COLOR_BLACK,      // border
+        LCD_COLOR_BLACK,      // text
+        "Start Round");
+
+    // Exit button (top-right)
+    LCD_Draw_Button(
+        gBlackjackExitBtn.x, gBlackjackExitBtn.y,
+        gBlackjackExitBtn.w, gBlackjackExitBtn.h,
+        LCD_COLOR_LIGHTGRAY, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
+        "Exit");
+}
+// drawing screen for mid round
+static void DrawBlackjackRoundScreen(void)
+{
+    gBlackjackRoundActive = 1;
+
+    // Draw the Blackjack table (background + Hit/Stand/New buttons)
+    Blackjack_DrawTable();
+
+
+    // Draw exit button on top of the table
     LCD_Draw_Button(
         gBlackjackExitBtn.x, gBlackjackExitBtn.y,
         gBlackjackExitBtn.w, gBlackjackExitBtn.h,

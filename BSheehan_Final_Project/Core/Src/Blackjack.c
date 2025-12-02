@@ -1,1 +1,486 @@
 #include "Blackjack.h"
+#include <stdlib.h> // rand, srand
+#include <stdio.h>  // snprintf
+
+// ---------------------
+//  Card rendering data
+// ---------------------
+
+static const char *RankStrings[13] = {
+    "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"};
+
+static const char SuitChars[SUIT_COUNT] = {
+    'C', 'D', 'H', 'S' // Clubs, Diamonds, Hearts, Spades
+};
+
+// ---------------------
+//  Global game state
+// ---------------------
+
+static BlackjackGame_t gBJ;
+
+// Simple button struct for Blackjack UI
+typedef struct
+{
+    uint16_t x;
+    uint16_t y;
+    uint16_t w;
+    uint16_t h;
+} BJ_Button_t;
+
+// Hit / Stand / New Round buttons (240x320 portrait)
+static const BJ_Button_t sBtnHit   = {  10, 270, 110, 45 };
+static const BJ_Button_t sBtnStand = { 120, 270, 110, 45 };
+static const BJ_Button_t sBtnNew   = {   0,   0,  60, 40 };
+
+static uint8_t BJ_ButtonHit(const BJ_Button_t *btn, uint16_t x, uint16_t y)
+{
+    return (x >= btn->x && x < (btn->x + btn->w) &&
+            y >= btn->y && y < (btn->y + btn->h));
+}
+
+// ---------------------
+//  Card helpers
+// ---------------------
+
+Card Blackjack_CardFromId(uint8_t id)
+{
+    Card c;
+    c.suit = (CardSuit)(id / 13);       // 0–3
+    c.rank = (CardRank)((id % 13) + 1); // 1–13
+    return c;
+}
+
+// Draw a raw card id (0–51)
+static uint8_t BJ_RandomCardId(void)
+{
+    return (uint8_t)(rand() % 52);
+}
+
+// Draw a simple rectangle card with rank + suit text
+void Blackjack_DrawCardOnScreen(Card card, uint16_t x, uint16_t y)
+{
+    uint16_t cardW = 40;
+    uint16_t cardH = 60;
+
+    // Background (white)
+
+    LCD_Fill_Rectangle(x, y, cardW, cardH, LCD_COLOR_WHITE);
+
+    // Border (black)
+    LCD_Draw_Rectangle(x, y, cardW, cardH, LCD_COLOR_BLACK);
+
+    // Build text like "AH" or "10S"
+    char buf[4]; // enough for "10S\0"
+    const char *rankStr = RankStrings[card.rank - 1];
+    char suitChar = SuitChars[card.suit];
+
+    if (rankStr[1] != '\0')
+    {
+        // two-character rank (10)
+        buf[0] = rankStr[0];
+        buf[1] = rankStr[1];
+        buf[2] = suitChar;
+        buf[3] = '\0';
+    }
+    else
+    {
+        // single-character rank
+        buf[0] = rankStr[0];
+        buf[1] = suitChar;
+        buf[2] = '\0';
+    }
+
+    // Draw text near the top-left corner of the card
+    LCD_SetTextColor(LCD_COLOR_BLACK);
+    LCD_Draw_String(x + 4, y + 4, buf);
+}
+
+// ---------------------
+//  Deck & hand helpers
+// ---------------------
+
+static void BJ_BuildDeck(void)
+{
+    uint8_t id = 0;
+    for (uint8_t s = 0; s < SUIT_COUNT; s++)
+    {
+        for (uint8_t r = 0; r < 13; r++)
+        {
+            gBJ.deck[id].suit = (CardSuit)s;
+            gBJ.deck[id].rank = (CardRank)(r + 1);
+            id++;
+        }
+    }
+    gBJ.deckIndex = 0;
+}
+
+static void BJ_ShuffleDeck(void)
+{
+    for (int i = 51; i > 0; i--)
+    {
+        int j = rand() % (i + 1);
+        Card tmp = gBJ.deck[i];
+        gBJ.deck[i] = gBJ.deck[j];
+        gBJ.deck[j] = tmp;
+    }
+    gBJ.deckIndex = 0;
+}
+
+static Card BJ_DealCard(void)
+{
+    if (gBJ.deckIndex >= 52)
+    {
+        // Safety: rebuild & shuffle if we somehow run out
+        BJ_BuildDeck();
+        BJ_ShuffleDeck();
+    }
+    return gBJ.deck[gBJ.deckIndex++];
+}
+
+static int16_t BJ_HandValue(const Card *hand, uint8_t count)
+{
+    int16_t total = 0;
+    uint8_t aces = 0;
+
+    for (uint8_t i = 0; i < count; i++)
+    {
+        uint8_t v;
+        switch (hand[i].rank)
+        {
+        case RANK_ACE:
+            v = 1;
+            aces++;
+            break;
+        case RANK_JACK:
+        case RANK_QUEEN:
+        case RANK_KING:
+            v = 10;
+            break;
+        default:
+            v = (uint8_t)hand[i].rank;
+            break;
+        }
+        total += v;
+    }
+
+    // Upgrade Aces from 1 -> 11 while it helps
+    while (aces > 0 && (total + 10) <= 21)
+    {
+        total += 10;
+        aces--;
+    }
+
+    return total;
+}
+
+static void BJ_SetStatus(const char *msg)
+{
+    uint8_t i = 0;
+    while (msg[i] != '\0' && i < (sizeof(gBJ.statusText) - 1))
+    {
+        gBJ.statusText[i] = msg[i];
+        i++;
+    }
+    gBJ.statusText[i] = '\0';
+}
+
+void Blackjack_StartRound(void)
+{
+    printf("Blackjack_StartRound() called\r\n");
+
+    // For now, just reset and redraw the "ready" state.
+    // Later you can:
+    //  - shuffle / draw cards
+    //  - compute hand values
+    //  - call Blackjack_DrawTable(), Blackjack_DrawHands(), Blackjack_DrawStatus(), etc.
+
+    Blackjack_Reset();
+    Blackjack_DrawTable();
+    Blackjack_DrawHands();
+    Blackjack_DrawStatus();
+}
+
+void Blackjack_Reset(void)
+{
+    // Clear player hand
+    gBJ.playerCardCount = 0;
+    gBJ.playerTotal = 0;
+
+    // Clear dealer hand
+    gBJ.dealerCardCount = 0;
+    gBJ.dealerTotal = 0;
+
+    // Reset game state to idle (pre-round)
+    gBJ.state = BJ_STATE_IDLE;
+
+    // Clear status text
+    BJ_SetStatus("Ready to start");
+}
+
+void Blackjack_DrawStatus(void)
+{
+    // Clear a strip at the bottom for status text
+    LCD_Fill_Rectangle(0, 230, 240, 24, LCD_COLOR_DARKGREEN);
+
+    LCD_SetTextColor(LCD_COLOR_WHITE);
+    LCD_Draw_String(10, 232, gBJ.statusText);
+}
+
+void Blackjack_DrawHands(void)
+{
+    char buf[24];
+
+    // Clear dealer & player card areas with table color
+    LCD_SetTextColor(LCD_COLOR_DARKGREEN);
+    // Dealer area: y ~ 60–140
+    LCD_Fill_Rectangle(0, 50, 240, 90, LCD_COLOR_DARKGREEN);
+    // Player area: y ~ 160–230
+    LCD_Fill_Rectangle(0, 150, 240, 80, LCD_COLOR_DARKGREEN);
+
+    // Dealer cards
+    // Dealer cards
+    uint16_t x = 20;
+    uint16_t y = 60;
+    for (uint8_t i = 0; i < gBJ.dealerCardCount; i++)
+    {
+
+        // Hide dealer's second card while it's the player's turn
+        if (i == 1 && gBJ.state == BJ_STATE_PLAYER_TURN)
+        {
+            uint16_t cardW = 40;
+            uint16_t cardH = 60;
+
+            // Draw a face-down card (back only, no rank/suit)
+            LCD_Fill_Rectangle(x, y, cardW, cardH, LCD_COLOR_RED);
+            LCD_Draw_Rectangle(x, y, cardW, cardH, LCD_COLOR_BLACK);
+        }
+        else
+        {
+            // Normal face-up card
+            Blackjack_DrawCardOnScreen(gBJ.dealerHand[i], x, y);
+        }
+
+        x += 45; // spacing
+    }
+
+    // Player cards
+    x = 20;
+    y = 160;
+    for (uint8_t i = 0; i < gBJ.playerCardCount; i++)
+    {
+        Blackjack_DrawCardOnScreen(gBJ.playerHand[i], x, y);
+        x += 45; // spacing
+    }
+
+    // Totals
+    LCD_SetTextColor(LCD_COLOR_WHITE);
+
+    snprintf(buf, sizeof(buf), "Dealer: %d", (int)gBJ.dealerTotal);
+    LCD_Draw_String(0, 140, buf);
+
+    snprintf(buf, sizeof(buf), "Player: %d", (int)gBJ.playerTotal);
+    LCD_Draw_String(0, 214, buf);
+
+    Blackjack_DrawStatus();
+}
+
+// ---------------------
+//  Public API
+// ---------------------
+
+void Blackjack_InitGame(void)
+{
+    // Seed RNG once (okay to reseed; this is simple lab code)
+    srand(HAL_GetTick());
+
+    BJ_BuildDeck();
+    BJ_ShuffleDeck();
+
+    gBJ.playerCardCount = 0;
+    gBJ.dealerCardCount = 0;
+    gBJ.playerTotal = 0;
+    gBJ.dealerTotal = 0;
+    gBJ.state = BJ_STATE_IDLE;
+    BJ_SetStatus("Welcome to Blackjack");
+}
+
+// Draw static table + buttons (no cards yet)
+void Blackjack_DrawTable(void)
+{
+    // Table background
+    LCD_Clear(LCD_COLOR_DARKGREEN);
+    printf("Draw scren\r\n");
+
+    // Title
+    LCD_SetTextColor(LCD_COLOR_WHITE);
+    LCD_Draw_String(20, 20, "Blackjack");
+
+    // Divider line between dealer and player
+    LCD_SetTextColor(LCD_COLOR_BLACK);
+    LCD_Fill_Rectangle(0, 145, 240, 2, LCD_COLOR_BLACK);
+    printf("Draw divider\r\n");
+
+    // Buttons: Hit, Stand, New
+    LCD_Draw_Button(
+        sBtnHit.x, sBtnHit.y, sBtnHit.w, sBtnHit.h,
+        LCD_COLOR_LIGHTGREEN, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
+        "Hit");
+    printf("Draw hit button\r\n");
+
+    LCD_Draw_Button(
+        sBtnStand.x, sBtnStand.y, sBtnStand.w, sBtnStand.h,
+        LCD_COLOR_YELLOW, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
+        "Stand");
+    printf("Draw stand button\r\n");
+
+    LCD_Draw_Button(
+        sBtnNew.x, sBtnNew.y, sBtnNew.w, sBtnNew.h,
+        LCD_COLOR_LIGHTGRAY, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
+        "New");
+    printf("Draw stay button\r\n");
+}
+
+void Blackjack_StartNewRound(void)
+{
+    // Re-shuffle if deck is getting low
+    if ((52U - gBJ.deckIndex) < 10U)
+    {
+        BJ_BuildDeck();
+        BJ_ShuffleDeck();
+    }
+    printf("shuffle deck\r\n");
+
+    gBJ.playerCardCount = 0;
+    gBJ.dealerCardCount = 0;
+
+    printf("set card count\r\n");
+
+    // Initial deal: P, D, P, D
+    gBJ.playerHand[gBJ.playerCardCount++] = BJ_DealCard();
+    gBJ.dealerHand[gBJ.dealerCardCount++] = BJ_DealCard();
+    gBJ.playerHand[gBJ.playerCardCount++] = BJ_DealCard();
+    gBJ.dealerHand[gBJ.dealerCardCount++] = BJ_DealCard();
+
+    printf("deal cards\r\n");
+
+    gBJ.playerTotal = BJ_HandValue(gBJ.playerHand, gBJ.playerCardCount);
+    gBJ.dealerTotal = BJ_HandValue(gBJ.dealerHand, gBJ.dealerCardCount);
+
+    gBJ.state = BJ_STATE_PLAYER_TURN;
+    BJ_SetStatus("Your turn: Hit/Stand");
+
+    printf("set player turn\r\n");
+    Blackjack_DrawHands();
+}
+
+// Player chooses Hit
+void Blackjack_PlayerHit(void)
+{
+    if (gBJ.state != BJ_STATE_PLAYER_TURN)
+    {
+        return;
+    }
+
+    if (gBJ.playerCardCount >= BLACKJACK_MAX_HAND_CARDS)
+    {
+        BJ_SetStatus("Max cards reached");
+        Blackjack_DrawHands();
+        return;
+    }
+
+    gBJ.playerHand[gBJ.playerCardCount++] = BJ_DealCard();
+    gBJ.playerTotal = BJ_HandValue(gBJ.playerHand, gBJ.playerCardCount);
+
+    if (gBJ.playerTotal > 21)
+    {
+        BJ_SetStatus("Bust! Dealer wins.");
+        gBJ.state = BJ_STATE_ROUND_DONE;
+    }
+    else if (gBJ.playerTotal == 21)
+    {
+        BJ_SetStatus("21! Standing.");
+        // Immediately go to dealer turn
+        gBJ.state = BJ_STATE_DEALER_TURN;
+    }
+    else
+    {
+        BJ_SetStatus("Your turn: Hit/Stand");
+    }
+
+    Blackjack_DrawHands();
+
+    if (gBJ.state == BJ_STATE_DEALER_TURN)
+    {
+        Blackjack_PlayerStand(); // reuse dealer logic
+    }
+}
+
+// Player chooses Stand (dealer plays out)
+void Blackjack_PlayerStand(void)
+{
+    if (gBJ.state != BJ_STATE_PLAYER_TURN &&
+        gBJ.state != BJ_STATE_DEALER_TURN)
+    {
+        return;
+    }
+
+    gBJ.state = BJ_STATE_DEALER_TURN;
+
+    // Dealer hits until 17 or more
+    while (gBJ.dealerTotal < 17 &&
+           gBJ.dealerCardCount < BLACKJACK_MAX_HAND_CARDS)
+    {
+
+        gBJ.dealerHand[gBJ.dealerCardCount++] = BJ_DealCard();
+        gBJ.dealerTotal = BJ_HandValue(gBJ.dealerHand, gBJ.dealerCardCount);
+    }
+
+    // Decide outcome
+    if (gBJ.dealerTotal > 21)
+    {
+        BJ_SetStatus("Dealer busts! You win.");
+    }
+    else if (gBJ.dealerTotal > gBJ.playerTotal)
+    {
+        BJ_SetStatus("Dealer wins.");
+    }
+    else if (gBJ.dealerTotal < gBJ.playerTotal)
+    {
+        BJ_SetStatus("You win!");
+    }
+    else
+    {
+        BJ_SetStatus("Push (tie).");
+    }
+
+    gBJ.state = BJ_STATE_ROUND_DONE;
+    Blackjack_DrawHands();
+}
+
+void Blackjack_HandleTouch(uint16_t x, uint16_t y)
+{
+    // Log every touch that reaches Blackjack so we know we’re not “stuck”
+    printf("BJ_HandleTouch: x=%u y=%u state=%d\r\n", x, y, (int)gBJ.state);
+
+    // Hit / Stand / New are always active; game state logic
+    // inside the functions decides if they do anything.
+    if (BJ_ButtonHit(&sBtnHit, x, y)) {
+        printf("BJ: Hit button\r\n");
+        Blackjack_PlayerHit();
+    } else if (BJ_ButtonHit(&sBtnStand, x, y)) {
+        printf("BJ: Stand button\r\n");
+        Blackjack_PlayerStand();
+    } else if (BJ_ButtonHit(&sBtnNew, x, y)) {
+    printf("BJ: New round button (state=%d)\r\n", (int)gBJ.state);
+
+    // Start a fresh round: reset/deal/update state
+    Blackjack_StartNewRound();
+
+    // Redraw table + buttons + exit + hands
+    Blackjack_DrawTable();
+    Blackjack_DrawHands();
+}
+}
+
+
