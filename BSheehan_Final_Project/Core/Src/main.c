@@ -37,7 +37,7 @@ int main(void)
        - Set NVIC Group Priority to 4
        - Global MSP (MCU Support Package) initialization
      */
-  HAL_Init();
+	HAL_Init();
 
   /* Configure the system clock to 168 MHz */
   SystemClock_Config();

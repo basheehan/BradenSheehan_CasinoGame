@@ -29,10 +29,9 @@ typedef struct
 } BJ_Button_t;
 
 // Hit / Stand / New Round buttons (240x320 portrait)
-static const BJ_Button_t sBtnHit   = {   0, 270,  80, 45 };
-static const BJ_Button_t sBtnStand = {  80, 270,  80, 45 };
-static const BJ_Button_t sBtnNew   = { 160, 270,  80, 45 };
-
+static const BJ_Button_t sBtnHit = {0, 270, 80, 45};
+static const BJ_Button_t sBtnStand = {80, 270, 80, 45};
+static const BJ_Button_t sBtnNew = {160, 270, 80, 45};
 
 static uint8_t BJ_ButtonHit(const BJ_Button_t *btn, uint16_t x, uint16_t y)
 {
@@ -228,9 +227,9 @@ void Blackjack_DrawStatus(void)
     // Choose a status area that is definitely on-screen
     // Your LCD is 240x240; we keep everything within that.
     uint16_t statusX = 0;
-    uint16_t statusY = 200;   // safely below cards/buttons but above bottom edge
+    uint16_t statusY = 250; // safely below cards/buttons but above bottom edge
     uint16_t statusW = 240;
-    uint16_t statusH = 40;    // 200 + 40 = 240 -> exactly fits
+    uint16_t statusH = 20; // 200 + 40 = 240 -> exactly fits
 
     printf("BJ_DrawStatus: before LCD_Fill_Rectangle (x=%u,y=%u,w=%u,h=%u)\r\n",
            statusX, statusY, statusW, statusH);
@@ -254,8 +253,6 @@ void Blackjack_DrawStatus(void)
     printf("BJ_DrawStatus: after LCD_Draw_String\r\n");
     printf("BJ_DrawStatus: EXIT\r\n");
 }
-
-
 
 void Blackjack_DrawHands(void)
 {
@@ -330,23 +327,30 @@ void Blackjack_DrawHands(void)
     LCD_SetTextColor(LCD_COLOR_WHITE);
 
     printf("BJ_DrawHands: totals step 2: snprintf dealer\r\n");
-    snprintf(buf, sizeof(buf), "Dealer: %d", (int)gBJ.dealerTotal);
-
-    printf("BJ_DrawHands: totals step 3: draw dealer string\r\n");
-    LCD_Draw_String(0, 140, buf);
+    // Dealer total
+    if (gBJ.state == BJ_STATE_PLAYER_TURN)
+    {
+        // Hide dealer total until player stands
+        LCD_Draw_String(0, 125, "Dealer: ??");
+    }
+    else
+    {
+        snprintf(buf, sizeof(buf), "Dealer: %d", (int)gBJ.dealerTotal);
+        LCD_Draw_String(0, 125, buf);
+    }
 
     printf("BJ_DrawHands: totals step 4: snprintf player\r\n");
     snprintf(buf, sizeof(buf), "Player: %d", (int)gBJ.playerTotal);
-
     printf("BJ_DrawHands: totals step 5: draw player string\r\n");
-    LCD_Draw_String(0, 214, buf);
+
+    LCD_Fill_Rectangle(0, 235, 240, 20, LCD_COLOR_DARKGREEN);
+    LCD_Draw_String(0, 235, buf);
 
     printf("BJ_DrawHands: totals step 6: calling Blackjack_DrawStatus\r\n");
     Blackjack_DrawStatus();
 
     printf("BJ_DrawHands: EXIT\r\n");
 }
-
 
 // ---------------------
 //  Public API
@@ -496,7 +500,6 @@ void Blackjack_PlayerHit(void)
     printf("BJ_PlayerHit: exit, state=%d\r\n", (int)gBJ.state);
 }
 
-
 // Player chooses Stand (dealer plays out)
 void Blackjack_PlayerStand(void)
 {
@@ -538,7 +541,7 @@ void Blackjack_PlayerStand(void)
     // Decide outcome
     if (gBJ.dealerTotal > 21)
     {
-        BJ_SetStatus("Dealer busts! You win.");
+        BJ_SetStatus("Dealer bust! You win");
         printf("BJ_PlayerStand: outcome=Dealer busts, you win\r\n");
     }
     else if (gBJ.dealerTotal > gBJ.playerTotal)
@@ -562,7 +565,6 @@ void Blackjack_PlayerStand(void)
     Blackjack_DrawHands();
     printf("BJ_PlayerStand: exit\r\n");
 }
-
 
 void Blackjack_HandleTouch(uint16_t x, uint16_t y)
 {
