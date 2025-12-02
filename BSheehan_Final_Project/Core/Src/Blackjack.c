@@ -1,6 +1,4 @@
 #include "Blackjack.h"
-#include <stdlib.h> // rand, srand
-#include <stdio.h>  // snprintf
 
 // ---------------------
 //  Card rendering data
@@ -473,12 +471,14 @@ void Blackjack_PlayerHit(void)
     if (gBJ.playerTotal > 21)
     {
         BJ_SetStatus("Bust! Dealer wins.");
+        Bank_ApplyLoss();
         gBJ.state = BJ_STATE_ROUND_DONE;
         printf("BJ_PlayerHit: bust, new state=ROUND_DONE\r\n");
     }
     else if (gBJ.playerTotal == 21)
     {
         BJ_SetStatus("21! Standing.");
+        Bank_ApplyPush();
         // Immediately go to dealer turn
         gBJ.state = BJ_STATE_DEALER_TURN;
         printf("BJ_PlayerHit: hit 21, new state=DEALER_TURN\r\n");
@@ -542,21 +542,31 @@ void Blackjack_PlayerStand(void)
     if (gBJ.dealerTotal > 21)
     {
         BJ_SetStatus("Dealer bust! You win");
+        Bank_ApplyWin();
         printf("BJ_PlayerStand: outcome=Dealer busts, you win\r\n");
     }
     else if (gBJ.dealerTotal > gBJ.playerTotal)
     {
         BJ_SetStatus("Dealer wins.");
+        Bank_ApplyLoss();
         printf("BJ_PlayerStand: outcome=Dealer wins\r\n");
     }
     else if (gBJ.dealerTotal < gBJ.playerTotal)
     {
         BJ_SetStatus("You win!");
+        Bank_ApplyWin();
+        printf("BJ_PlayerStand: outcome=You win\r\n");
+    }
+    else if (gBJ.dealerTotal < gBJ.playerTotal && gBJ.playerTotal == 21 )
+    {
+        BJ_SetStatus("Blackjack! You win!");
+        Bank_ApplyBlackjackWin();
         printf("BJ_PlayerStand: outcome=You win\r\n");
     }
     else
     {
         BJ_SetStatus("Push (tie).");
+        Bank_ApplyPush();
         printf("BJ_PlayerStand: outcome=Push\r\n");
     }
 
@@ -586,6 +596,13 @@ void Blackjack_HandleTouch(uint16_t x, uint16_t y)
     else if (BJ_ButtonHit(&sBtnNew, x, y))
     {
         printf("BJ: New round button (state=%d)\r\n", (int)gBJ.state);
+
+        if (!Bank_CanBet())
+        {
+            BJ_SetStatus("Balance < $100");
+            Blackjack_DrawHands();
+            return;
+        }
 
         // Start a fresh round: reset/deal/update state
         Blackjack_StartNewRound();

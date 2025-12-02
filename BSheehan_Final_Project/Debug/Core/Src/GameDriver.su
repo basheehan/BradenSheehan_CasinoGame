@@ -1,8 +1,8 @@
 ../Core/Src/GameDriver.c:24:6:GameDriver_Init	8	static
-../Core/Src/GameDriver.c:37:6:GameDriver_MainLoop	24	static
-../Core/Src/GameDriver.c:129:16:Button_HitTest	16	static
-../Core/Src/GameDriver.c:145:13:DebugPrintTouch	16	static
-../Core/Src/GameDriver.c:153:13:DrawHomeScreen	32	static
-../Core/Src/GameDriver.c:174:13:DrawBlackjackScreen	32	static
-../Core/Src/GameDriver.c:207:13:DrawBlackjackRoundScreen	32	static
-../Core/Src/GameDriver.c:242:13:DrawRouletteScreen	32	static
+../Core/Src/GameDriver.c:39:6:GameDriver_MainLoop	24	static
+../Core/Src/GameDriver.c:139:16:Button_HitTest	16	static
+../Core/Src/GameDriver.c:155:13:DebugPrintTouch	16	static
+../Core/Src/GameDriver.c:163:13:DrawHomeScreen	56	static
+../Core/Src/GameDriver.c:188:13:DrawBlackjackScreen	32	static
+../Core/Src/GameDriver.c:220:13:DrawBlackjackRoundScreen	32	static
+../Core/Src/GameDriver.c:252:13:DrawRouletteScreen	32	static

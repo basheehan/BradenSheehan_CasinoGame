@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include "stm32f4xx_hal.h"
 #include "LCD_Driver.h"
+#include <stdlib.h> // rand, srand
+#include <stdio.h>  // snprintf
+#include "Bank.h"
+
 
 // -------- Card definitions --------
 

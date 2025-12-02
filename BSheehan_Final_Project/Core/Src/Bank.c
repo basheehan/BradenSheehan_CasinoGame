@@ -21,6 +21,10 @@ void Bank_ApplyWin(void)
 {
     sBankBalance += BANK_BET_AMOUNT;
 }
+void Bank_ApplyBlackjackWin(void)
+{
+    sBankBalance += (BANK_BET_AMOUNT*1.5);
+}
 
 void Bank_ApplyLoss(void)
 {

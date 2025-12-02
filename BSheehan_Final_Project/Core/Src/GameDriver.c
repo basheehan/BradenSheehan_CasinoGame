@@ -31,6 +31,8 @@ void GameDriver_Init(void)
     gLastTouchTime = 0;
     LCD_SetFont(&Font12x12);
 
+    Bank_Init();
+
     DrawHomeScreen();
 }
 
@@ -88,13 +90,21 @@ void GameDriver_MainLoop(void)
                     {
                         printf("Blackjack: Start Round button hit\r\n");
 
+                        if (!Bank_CanBet())
+                        {
+                            LCD_SetTextColor(LCD_COLOR_WHITE);
+                            LCD_Draw_String(20, 60, "Balance < $100");
+                            break;
+                        }
+
                         // mark that we are now in a round
                         gBlackjackRoundActive = 1;
-                        
+
                         Blackjack_StartNewRound();
                         // now draw the full round view (table + hands + exit)
                         DrawBlackjackRoundScreen();
                     }
+
                     // If a round is active, send touch to Blackjack engine for Hit/Stand/New
                     else if (gBlackjackRoundActive)
                     {
@@ -156,6 +166,10 @@ static void DrawHomeScreen(void)
     LCD_SetTextColor(LCD_COLOR_WHITE);
     LCD_Draw_String(40, 40, "Casino");
 
+    char buf[24];
+    snprintf(buf, sizeof(buf), "Balance: $%ld", (long)Bank_GetBalance());
+    LCD_Draw_String(40, 60, buf);
+
     // Blackjack button
     LCD_Draw_Button(
         gHomeBlackjackBtn.x, gHomeBlackjackBtn.y,
@@ -173,7 +187,7 @@ static void DrawHomeScreen(void)
 
 static void DrawBlackjackScreen(void)
 {
-        printf("GD: Enter DrawBlackjackScreen (menu)\r\n");
+    printf("GD: Enter DrawBlackjackScreen (menu)\r\n");
 
     gBlackjackRoundActive = 0;
 
@@ -200,8 +214,7 @@ static void DrawBlackjackScreen(void)
         gBlackjackExitBtn.w, gBlackjackExitBtn.h,
         LCD_COLOR_LIGHTGRAY, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
         "Exit");
-            printf("GD: Leave DrawBlackjackScreen (menu drawn)\r\n");
-
+    printf("GD: Leave DrawBlackjackScreen (menu drawn)\r\n");
 }
 // drawing screen for mid round
 static void DrawBlackjackRoundScreen(void)
@@ -235,9 +248,6 @@ static void DrawBlackjackRoundScreen(void)
 
     printf("GD: Leave DrawBlackjackRoundScreen (round UI drawn)\r\n");
 }
-
-
-
 
 static void DrawRouletteScreen(void)
 {
