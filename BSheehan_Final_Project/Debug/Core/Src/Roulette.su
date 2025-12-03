@@ -1,0 +1,9 @@
+../Core/Src/Roulette.c:72:16:Roulette_IsRed	16	static
+../Core/Src/Roulette.c:83:6:Roulette_InitGame	8	static
+../Core/Src/Roulette.c:91:16:ROU_ButtonHit	16	static
+../Core/Src/Roulette.c:97:13:ROU_SetStatus	24	static
+../Core/Src/Roulette.c:115:13:ROU_DrawStatus	80	static
+../Core/Src/Roulette.c:210:24:Roulette_GetResultColor	16	static
+../Core/Src/Roulette.c:224:15:Roulette_SpinWheel	40	static
+../Core/Src/Roulette.c:281:6:Roulette_DrawTable	144	static
+../Core/Src/Roulette.c:415:6:Roulette_HandleTouch	80	static

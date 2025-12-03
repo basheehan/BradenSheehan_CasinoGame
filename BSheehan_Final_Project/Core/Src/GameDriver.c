@@ -122,7 +122,13 @@ void GameDriver_MainLoop(void)
                     if (Button_HitTest(&gRouletteExitBtn, tx, ty))
                     {
                         gAppState = APP_STATE_HOME;
+                        Roulette_InitGame();
                         DrawHomeScreen();
+                    }
+                    else
+                    {
+                        // Pass all other touches to roulette logic
+                        Roulette_HandleTouch(tx, ty); // NEW
                     }
                     break;
 
@@ -163,8 +169,6 @@ static void DebugPrintTouch(uint16_t x, uint16_t y, STMPE811_State_t state)
     (void)state; // state is not used for now, but kept for future debugging
     printf("Touch: x=%u y=%u\r\n", (unsigned)x, (unsigned)y);
 }
-
-// Simple UI drawing using your LCD helpers
 
 static void DrawHomeScreen(void)
 {
@@ -222,7 +226,7 @@ static void DrawBlackjackScreen(void)
         "Exit");
     printf("GD: Leave DrawBlackjackScreen (menu drawn)\r\n");
 }
-// drawing screen for mid round
+
 static void DrawBlackjackRoundScreen(void)
 {
     printf("GD: Enter DrawBlackjackRoundScreen\r\n");
@@ -257,10 +261,9 @@ static void DrawBlackjackRoundScreen(void)
 
 static void DrawRouletteScreen(void)
 {
-    LCD_Clear(LCD_COLOR_BLUE);
-    LCD_SetTextColor(LCD_COLOR_WHITE);
-    LCD_Draw_String(20, 20, "Roulette");
+    Roulette_DrawTable();
 
+    // Draw Exit button on top-right, same as before
     LCD_Draw_Button(
         gRouletteExitBtn.x, gRouletteExitBtn.y,
         gRouletteExitBtn.w, gRouletteExitBtn.h,

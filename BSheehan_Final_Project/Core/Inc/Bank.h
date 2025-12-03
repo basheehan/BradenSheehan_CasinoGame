@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define BANK_STARTING_BALANCE 100
+#define BANK_STARTING_BALANCE 1000
 #define BANK_BET_AMOUNT       100
 
 void Bank_Init(void);

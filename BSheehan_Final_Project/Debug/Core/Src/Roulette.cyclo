@@ -1,0 +1,9 @@
+../Core/Src/Roulette.c:72:16:Roulette_IsRed	3
+../Core/Src/Roulette.c:83:6:Roulette_InitGame	1
+../Core/Src/Roulette.c:91:16:ROU_ButtonHit	5
+../Core/Src/Roulette.c:97:13:ROU_SetStatus	4
+../Core/Src/Roulette.c:115:13:ROU_DrawStatus	16
+../Core/Src/Roulette.c:210:24:Roulette_GetResultColor	4
+../Core/Src/Roulette.c:224:15:Roulette_SpinWheel	9
+../Core/Src/Roulette.c:281:6:Roulette_DrawTable	8
+../Core/Src/Roulette.c:415:6:Roulette_HandleTouch	10
