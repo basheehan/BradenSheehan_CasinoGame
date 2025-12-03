@@ -5,3 +5,5 @@
 ../Core/Src/Bank.c:24:6:Bank_ApplyBlackjackWin	8	static
 ../Core/Src/Bank.c:29:6:Bank_ApplyLoss	4	static
 ../Core/Src/Bank.c:39:6:Bank_ApplyPush	4	static
+../Core/Src/Bank.c:44:6:Bank_ApplyRouletteColorWin	4	static
+../Core/Src/Bank.c:48:6:Bank_ApplyRouletteNumberWin	4	static

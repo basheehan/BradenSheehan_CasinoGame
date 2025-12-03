@@ -23,7 +23,7 @@ void Bank_ApplyWin(void)
 }
 void Bank_ApplyBlackjackWin(void)
 {
-    sBankBalance += (BANK_BET_AMOUNT*1.5);
+    sBankBalance += (BANK_BET_AMOUNT * 1.5);
 }
 
 void Bank_ApplyLoss(void)
@@ -39,5 +39,14 @@ void Bank_ApplyLoss(void)
 void Bank_ApplyPush(void)
 {
     // No change but add for function structure
-
 }
+
+void Bank_ApplyRouletteColorWin(void)
+{
+    sBankBalance += (BANK_BET_AMOUNT + 50);
+}
+void Bank_ApplyRouletteNumberWin(void)
+{
+    sBankBalance += (BANK_BET_AMOUNT + 200);
+}
+

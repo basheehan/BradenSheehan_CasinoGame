@@ -14,8 +14,8 @@
 
 typedef enum
 {
-    ROULETTE_STATE_IDLE = 0,  // waiting for color selection
-    ROULETTE_STATE_RESULT     // last spin result is shown
+    ROULETTE_STATE_IDLE = 0, // waiting for color selection
+    ROULETTE_STATE_RESULT    // last spin result is shown
 } RouletteState_t;
 
 typedef enum
@@ -28,10 +28,13 @@ typedef enum
 typedef struct
 {
     RouletteState_t state;
-    RouletteColor_t selectedColor;   // player’s chosen color (Red/Black)
-    int8_t          lastResult;      // -1 = 00, 0 = 0, 1–15 = numbers
-    char            statusText[40];  // status line buffer
+    RouletteColor_t selectedColor; // player’s chosen color (Red/Black)
+    int8_t selectedNumber;         // -2 = none, -1 = 00, 0 = 0, 1–15 = numbers
+    int8_t lastResult;             // -1 = 00, 0 = 0, 1–15 = numbers
+    char statusText[40];           // status line buffer
 } RouletteGame_t;
+
+#define ROULETTE_NO_NUMBER ((int8_t)-2)
 
 static RouletteGame_t gRoulette;
 
@@ -48,9 +51,9 @@ typedef struct
 } ROU_Button_t;
 
 // x, y, w, h (same style as your Blackjack buttons)
-static const ROU_Button_t sBtnBet   = {  0, 270,  80, 45 };
-static const ROU_Button_t sBtnRed   = { 80, 270,  80, 45 };
-static const ROU_Button_t sBtnBlack = {160, 270,  80, 45 };
+static const ROU_Button_t sBtnBet = {0, 270, 80, 45};
+static const ROU_Button_t sBtnRed = {80, 270, 80, 45};
+static const ROU_Button_t sBtnBlack = {160, 270, 80, 45};
 
 static const uint8_t sNumberGrid[ROULETTE_ROWS][ROULETTE_COLS] = {
     {1, 2, 3},
@@ -84,6 +87,8 @@ void Roulette_InitGame(void)
 {
     gRoulette.state = ROULETTE_STATE_IDLE;
     gRoulette.selectedColor = ROULETTE_COLOR_NONE;
+    gRoulette.selectedNumber = ROULETTE_NO_NUMBER; // NEW
+
     gRoulette.lastResult = 0;
     ROU_SetStatus("Select Red or Black");
 }
@@ -92,6 +97,68 @@ static uint8_t ROU_ButtonHit(const ROU_Button_t *btn, uint16_t x, uint16_t y)
 {
     return (x >= btn->x && x < (btn->x + btn->w) &&
             y >= btn->y && y < (btn->y + btn->h));
+}
+static uint8_t ROU_HitNumberCell(uint16_t x, uint16_t y, int8_t *outNumber)
+{
+    // Must match the grid geometry used in Roulette_DrawTable
+    const uint16_t startX = 5;  // left margin of grid
+    const uint16_t startY = 70; // top of row 0
+    const uint16_t cellW = 77;  // width of each cell
+    const uint16_t cellH = 32;  // height of each cell
+
+    // Grid is 3 columns wide, 6 rows tall (row0: 0/00, rows1–5: 1–15)
+    const uint16_t gridW = (uint16_t)(3u * cellW);
+    const uint16_t gridH = (uint16_t)(6u * cellH);
+
+    if (x < startX || x >= (uint16_t)(startX + gridW) ||
+        y < startY || y >= (uint16_t)(startY + gridH))
+    {
+        return 0u;
+    }
+
+    uint16_t relX = (uint16_t)(x - startX);
+    uint16_t relY = (uint16_t)(y - startY);
+
+    uint8_t col = (uint8_t)(relX / cellW); // 0..2
+    uint8_t row = (uint8_t)(relY / cellH); // 0..5
+
+    if (col > 2u || row > 5u)
+    {
+        return 0u;
+    }
+
+    if (row == 0u)
+    {
+        // Row 0: 0, 00, blank
+        if (col == 0u)
+        {
+            *outNumber = 0; // "0"
+            return 1u;
+        }
+        else if (col == 1u)
+        {
+            *outNumber = -1; // "00"
+            return 1u;
+        }
+        else
+        {
+            return 0u; // rightmost cell is blank
+        }
+    }
+    else
+    {
+        // Rows 1–5: 1–15 laid out row-major
+        // row1: 1,2,3 ; row2: 4,5,6 ; ... ; row5: 13,14,15
+        uint8_t n = (uint8_t)(((row - 1u) * 3u) + col + 1u); // 1..15
+
+        if (n >= 1u && n <= 15u)
+        {
+            *outNumber = (int8_t)n;
+            return 1u;
+        }
+    }
+
+    return 0u;
 }
 
 static void ROU_SetStatus(const char *msg)
@@ -118,7 +185,7 @@ static void ROU_DrawStatus(void)
     char line1[21];
     char line2[21];
 
-    uint8_t maxPerLine = 18;   // ~18 chars per 240px with 12x12 font
+    uint8_t maxPerLine = 18; // ~18 chars per 240px with 12x12 font
     uint8_t len = 0;
 
     while (msg[len] != '\0' && len < sizeof(gRoulette.statusText))
@@ -126,13 +193,13 @@ static void ROU_DrawStatus(void)
         len++;
     }
 
-    uint8_t firstLen  = 0;
+    uint8_t firstLen = 0;
     uint8_t secondLen = 0;
-    uint8_t start2    = 0;
+    uint8_t start2 = 0;
 
     if (len <= maxPerLine)
     {
-        firstLen  = len;
+        firstLen = len;
         secondLen = 0;
     }
     else
@@ -206,7 +273,6 @@ static void ROU_DrawStatus(void)
     }
 }
 
-
 static RouletteColor_t Roulette_GetResultColor(int8_t result)
 {
     if (result >= 1 && result <= 15)
@@ -225,53 +291,82 @@ static int8_t Roulette_SpinWheel(void)
 {
     int8_t result = 0;
 
-    if (CheatCode_IsArmed() &&
-        (gRoulette.selectedColor == ROULETTE_COLOR_RED ||
-         gRoulette.selectedColor == ROULETTE_COLOR_BLACK))
+    if (CheatCode_IsArmed())
     {
-        // Force a winning number: pick a 1–15 that matches selectedColor
-        uint8_t candidates[15];
-        uint8_t count = 0;
+        uint8_t hasNumber = (gRoulette.selectedNumber != ROULETTE_NO_NUMBER);
+        uint8_t hasColor = (gRoulette.selectedColor == ROULETTE_COLOR_RED ||
+                            gRoulette.selectedColor == ROULETTE_COLOR_BLACK);
 
-        for (uint8_t n = 1; n <= 15; n++)
+        if (hasNumber)
         {
-            RouletteColor_t c = Roulette_GetResultColor((int8_t)n);
-            if (c == gRoulette.selectedColor)
+            // Exact number cheat: 0, 00, or 1–15
+            result = gRoulette.selectedNumber;
+        }
+        else if (hasColor)
+        {
+            // Force a winning number: pick a 1–15 that matches selectedColor
+            uint8_t candidates[15];
+            uint8_t count = 0;
+
+            for (uint8_t n = 1; n <= 15; n++)
             {
-                candidates[count++] = n;
+                RouletteColor_t c = Roulette_GetResultColor((int8_t)n);
+                if (c == gRoulette.selectedColor)
+                {
+                    candidates[count++] = n;
+                }
+            }
+
+            if (count > 0u)
+            {
+                uint8_t idx = (uint8_t)(rand() % count);
+                result = (int8_t)candidates[idx];
+            }
+            else
+            {
+                // Fallback (should not really happen)
+                result = 0;
+            }
+        }
+        else
+        {
+            // Cheat armed but no valid bet (shouldn't happen because Bet
+            // requires a selection). Fall back to normal random.
+            int r = rand() % 17; // 0..16
+
+            if (r == 0)
+            {
+                result = 0; // "0"
+            }
+            else if (r == 1)
+            {
+                result = -1; // "00"
+            }
+            else
+            {
+                result = (int8_t)(r - 1); // 2..16 -> 1..15
             }
         }
 
-        if (count > 0u)
-        {
-            uint8_t idx = (uint8_t)(rand() % count);
-            result = (int8_t)candidates[idx];
-        }
-        else
-        {
-            // Fallback (should never really happen)
-            result = 0;
-        }
-
         CheatCode_Consume();
+        return result;
+    }
+
+    // Normal random spin (no cheat)
+    // 17 equally likely outcomes: {0, 00, 1–15}
+    int r = rand() % 17; // 0..16
+
+    if (r == 0)
+    {
+        result = 0; // "0"
+    }
+    else if (r == 1)
+    {
+        result = -1; // "00"
     }
     else
     {
-        // 17 equally likely outcomes: {0, 00, 1..15}
-        int r = rand() % 17; // 0..16
-
-        if (r == 0)
-        {
-            result = 0; // "0"
-        }
-        else if (r == 1)
-        {
-            result = -1; // "00"
-        }
-        else
-        {
-            result = (int8_t)(r - 1); // 2..16 -> 1..15
-        }
+        result = (int8_t)(r - 1); // 2..16 -> 1..15
     }
 
     return result;
@@ -295,7 +390,7 @@ void Roulette_DrawTable(void)
     // ----------------------------
     //
 
-    const uint16_t startX = 5; // left margin of grid
+    const uint16_t startX = 5;  // left margin of grid
     const uint16_t startY = 70; // top of row 0
     const uint16_t cellW = 77;  // width of each cell
     const uint16_t cellH = 32;  // height of each cell
@@ -407,7 +502,6 @@ void Roulette_DrawTable(void)
         LCD_COLOR_WHITE,
         "Black");
 
-
     ROU_DrawStatus();
     printf("Roulette_DrawTable: leave\r\n");
 }
@@ -417,10 +511,50 @@ void Roulette_HandleTouch(uint16_t x, uint16_t y)
     printf("Roulette_HandleTouch: x=%u y=%u state=%d\r\n",
            (unsigned)x, (unsigned)y, (int)gRoulette.state);
 
-    // Color selection buttons always work (select/deselect)
+    // First, check if the touch is on the number grid (0, 00, 1–15)
+    {
+        int8_t hitNumber;
+        if (ROU_HitNumberCell(x, y, &hitNumber))
+        {
+            gRoulette.selectedNumber = hitNumber;
+
+            if (hitNumber == 0 || hitNumber == -1)
+            {
+                // 0 or 00: no color
+                gRoulette.selectedColor = ROULETTE_COLOR_NONE;
+
+                if (hitNumber == 0)
+                {
+                    ROU_SetStatus("Bet on 0");
+                }
+                else
+                {
+                    ROU_SetStatus("Bet on 00");
+                }
+            }
+            else
+            {
+                // 1–15: also set the inherent color and show both
+                RouletteColor_t c = Roulette_GetResultColor(hitNumber);
+                gRoulette.selectedColor = c;
+
+                const char *colStr = (c == ROULETTE_COLOR_RED) ? "RED" : "BLACK";
+                char msg[40];
+                snprintf(msg, sizeof(msg), "Bet: %d %s", (int)hitNumber, colStr);
+                ROU_SetStatus(msg);
+            }
+
+            gRoulette.state = ROULETTE_STATE_IDLE;
+            Roulette_DrawTable();
+            return;
+        }
+    }
+
+    // Color selection buttons always work (pure color bet)
     if (ROU_ButtonHit(&sBtnRed, x, y))
     {
         gRoulette.selectedColor = ROULETTE_COLOR_RED;
+        gRoulette.selectedNumber = ROULETTE_NO_NUMBER; // clear number bet
         ROU_SetStatus("Red selected");
         gRoulette.state = ROULETTE_STATE_IDLE;
         Roulette_DrawTable();
@@ -430,17 +564,22 @@ void Roulette_HandleTouch(uint16_t x, uint16_t y)
     if (ROU_ButtonHit(&sBtnBlack, x, y))
     {
         gRoulette.selectedColor = ROULETTE_COLOR_BLACK;
+        gRoulette.selectedNumber = ROULETTE_NO_NUMBER; // clear number bet
         ROU_SetStatus("Black selected");
         gRoulette.state = ROULETTE_STATE_IDLE;
         Roulette_DrawTable();
         return;
     }
-    // Bet button: only meaningful if a color is chosen
+
+    // Bet button: must have either a color or a number (or both for 1–15)
     if (ROU_ButtonHit(&sBtnBet, x, y))
     {
-        if (gRoulette.selectedColor == ROULETTE_COLOR_NONE)
+        uint8_t hasNumber = (gRoulette.selectedNumber != ROULETTE_NO_NUMBER);
+        uint8_t hasColor = (gRoulette.selectedColor != ROULETTE_COLOR_NONE);
+
+        if (!hasNumber && !hasColor)
         {
-            ROU_SetStatus("Pick Red or Black first");
+            ROU_SetStatus("Pick color or number first");
             Roulette_DrawTable();
             return;
         }
@@ -458,7 +597,7 @@ void Roulette_HandleTouch(uint16_t x, uint16_t y)
 
         RouletteColor_t resultColor = Roulette_GetResultColor(result);
 
-        // Build a result string: "Spin: 7 RED - You win!"
+        // Build a result string: "Spin: 7 RED - ..."
         char numBuf[4];
         const char *numStr;
 
@@ -478,11 +617,39 @@ void Roulette_HandleTouch(uint16_t x, uint16_t y)
 
         char msg[40];
 
-        if (resultColor == gRoulette.selectedColor)
+        // Decide win type
+        uint8_t hit = 0u;
+        uint8_t numberHit = 0u;
+
+        if (hasNumber && (result == gRoulette.selectedNumber))
         {
-            Bank_ApplyWin();
-            const char *colStr = (gRoulette.selectedColor == ROULETTE_COLOR_RED) ? "RED" : "BLACK";
-            snprintf(msg, sizeof(msg), "Spin: %s %s - You win!", numStr, colStr);
+            // Exact number hit (0, 00, or 1–15)
+            hit = 1u;
+            numberHit = 1u;
+        }
+        else if (!hasNumber && hasColor && (resultColor == gRoulette.selectedColor))
+        {
+            // Color-only bet and color matches
+            hit = 1u;
+        }
+
+        if (hit)
+        {
+            if (numberHit)
+            {
+                // Number bet hit: pay more (call win twice to approximate triple)
+                Bank_ApplyRouletteNumberWin();
+                snprintf(msg, sizeof(msg), "Spin: %s - Number hit!", numStr);
+            }
+            else
+            {
+                // Color-only win
+                Bank_ApplyRouletteColorWin();
+                const char *colStr =
+                    (gRoulette.selectedColor == ROULETTE_COLOR_RED) ? "RED" : "BLACK";
+
+                snprintf(msg, sizeof(msg), "Spin: %s %s - Color win!", numStr, colStr);
+            }
         }
         else
         {
@@ -496,6 +663,4 @@ void Roulette_HandleTouch(uint16_t x, uint16_t y)
         Roulette_DrawTable();
         return;
     }
-
-    // Any other touch inside roulette does nothing for now
 }

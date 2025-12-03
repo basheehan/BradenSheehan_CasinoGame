@@ -14,5 +14,7 @@ void Bank_ApplyWin(void);
 void Bank_ApplyLoss(void);
 void Bank_ApplyPush(void);
 void Bank_ApplyBlackjackWin(void);
+void Bank_ApplyRouletteColorWin(void);
+void Bank_ApplyRouletteNumberWin(void);
 
 #endif /* BANK_H */
