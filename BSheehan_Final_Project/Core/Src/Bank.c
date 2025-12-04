@@ -43,7 +43,7 @@ void Bank_ApplyPush(void)
 
 void Bank_ApplyRouletteColorWin(void)
 {
-    sBankBalance += (BANK_BET_AMOUNT + 50);
+    sBankBalance += 50;
 }
 void Bank_ApplyRouletteNumberWin(void)
 {

@@ -1,8 +1,7 @@
-../Core/Src/GameDriver.c:24:6:GameDriver_Init	1
-../Core/Src/GameDriver.c:39:6:GameDriver_MainLoop	17
-../Core/Src/GameDriver.c:151:16:Button_HitTest	6
-../Core/Src/GameDriver.c:167:13:DebugPrintTouch	1
-../Core/Src/GameDriver.c:173:13:DrawHomeScreen	1
-../Core/Src/GameDriver.c:198:13:DrawBlackjackScreen	1
-../Core/Src/GameDriver.c:230:13:DrawBlackjackRoundScreen	1
-../Core/Src/GameDriver.c:262:13:DrawRouletteScreen	1
+../Core/Src/GameDriver.c:21:6:GameDriver_Init	1
+../Core/Src/GameDriver.c:35:6:GameDriver_MainLoop	17
+../Core/Src/GameDriver.c:127:16:Button_HitTest	6
+../Core/Src/GameDriver.c:145:13:DrawHomeScreen	1
+../Core/Src/GameDriver.c:168:13:DrawBlackjackScreen	1
+../Core/Src/GameDriver.c:190:13:DrawBlackjackRoundScreen	1
+../Core/Src/GameDriver.c:205:13:DrawRouletteScreen	1

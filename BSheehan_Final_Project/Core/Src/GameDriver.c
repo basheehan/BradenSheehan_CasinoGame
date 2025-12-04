@@ -1,34 +1,30 @@
 #include "GameDriver.h"
 
 static AppState_t gAppState = APP_STATE_HOME;
-static uint32_t gLastTouchTime = 0;
+static uint32_t   gLastTouchTime = 0;
 
-// local touch state (same style as touch demo)
 static STMPE811_TouchData gTouchData;
 
-// Home screen buttons (match what you draw)
-static Button_t gHomeBlackjackBtn = {0, 200, 120, 100};
-static Button_t gHomeRouletteBtn = {120, 200, 120, 100};
+static Button_t gHomeBlackjackBtn = {0,   200, 120, 100};
+static Button_t gHomeRouletteBtn  = {120, 200, 120, 100};
 
-// Exit buttons
 static Button_t gBlackjackExitBtn = {180, 0, 60, 40};
-static Button_t gRouletteExitBtn = {180, 0, 60, 40};
-
-// start buttons
+static Button_t gRouletteExitBtn  = {180, 0, 60, 40};
 
 static Button_t gBlackjackStartBtn = {40, 200, 160, 100};
-static Button_t gRouletteStartBtn = {40, 200, 160, 100};
+static Button_t gRouletteStartBtn  = {40, 200, 160, 100};
 
-static uint8_t gBlackjackRoundActive = 0; // used to track if inside a round
+static uint8_t gBlackjackRoundActive = 0;
+
+
 
 void GameDriver_Init(void)
 {
-    // Use same orientation as the LCD_Touch_Polling_Demo
     gTouchData.orientation = STMPE811_Orientation_Portrait_2;
 
-    // Start at home screen
-    gAppState = APP_STATE_HOME;
+    gAppState      = APP_STATE_HOME;
     gLastTouchTime = 0;
+
     LCD_SetFont(&Font12x12);
     Bank_Init();
     CheatCode_Init();
@@ -40,41 +36,32 @@ void GameDriver_MainLoop(void)
 {
     while (1)
     {
-        // check for cheats
         if (gAppState == APP_STATE_HOME)
         {
-            uint8_t btnPressed =
+            uint8_t pressed =
                 (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_SET) ? 1u : 0u;
-            CheatCode_Update(btnPressed, HAL_GetTick());
+            CheatCode_Update(pressed, HAL_GetTick());
         }
-        // Poll the touch controller using the SAME helper as the touch demo
+
         STMPE811_State_t tstate = returnTouchStateAndLocation(&gTouchData);
 
         if (tstate == STMPE811_State_Pressed)
         {
             uint32_t now = HAL_GetTick();
 
-            // Simple debounce
             if ((now - gLastTouchTime) >= TOUCH_DEBOUNCE_MS)
             {
-                // --- NEW: use local, LCD-aligned coordinates ---
                 uint16_t tx = gTouchData.x;
-                uint16_t ty = gTouchData.y;
-
-                // Flip Y so 0 is at the TOP of the LCD
-                ty = 319 - ty; // LCD height is 320 -> valid range 0..319
-
-                DebugPrintTouch(tx, ty, tstate);
+                uint16_t ty = 319 - gTouchData.y;  // flip Y
 
                 switch (gAppState)
                 {
                 case APP_STATE_HOME:
                     if (Button_HitTest(&gHomeBlackjackBtn, tx, ty))
                     {
-                        printf("Blackjack button hit\r\n");
-                        Blackjack_InitGame(); // build + shuffle deck, set initial status
+                        Blackjack_InitGame();
                         gAppState = APP_STATE_BLACKJACK;
-                        DrawBlackjackScreen(); // show menu (Start Round + Exit)
+                        DrawBlackjackScreen();
                     }
                     else if (Button_HitTest(&gHomeRouletteBtn, tx, ty))
                     {
@@ -84,19 +71,14 @@ void GameDriver_MainLoop(void)
                     break;
 
                 case APP_STATE_BLACKJACK:
-                    // Exit button always works
                     if (Button_HitTest(&gBlackjackExitBtn, tx, ty))
                     {
-                        printf("Blackjack: Exit button hit\r\n");
                         gAppState = APP_STATE_HOME;
                         DrawHomeScreen();
                     }
-                    // If we’re on the menu (no round active yet)
                     else if (!gBlackjackRoundActive &&
                              Button_HitTest(&gBlackjackStartBtn, tx, ty))
                     {
-                        printf("Blackjack: Start Round button hit\r\n");
-
                         if (!Bank_CanBet())
                         {
                             LCD_SetTextColor(LCD_COLOR_WHITE);
@@ -104,14 +86,9 @@ void GameDriver_MainLoop(void)
                             break;
                         }
 
-                        // Mark that we are now in a round
                         gBlackjackRoundActive = 1;
-
-                        // DrawBlackjackRoundScreen will call Blackjack_StartNewRound()
                         DrawBlackjackRoundScreen();
                     }
-
-                    // If a round is active, send touch to Blackjack engine for Hit/Stand/New
                     else if (gBlackjackRoundActive)
                     {
                         Blackjack_HandleTouch(tx, ty);
@@ -127,8 +104,7 @@ void GameDriver_MainLoop(void)
                     }
                     else
                     {
-                        // Pass all other touches to roulette logic
-                        Roulette_HandleTouch(tx, ty); // NEW
+                        Roulette_HandleTouch(tx, ty);
                     }
                     break;
 
@@ -146,7 +122,7 @@ void GameDriver_MainLoop(void)
     }
 }
 
-// ----------------- helpers -----------------
+//button helpers
 
 static uint8_t Button_HitTest(const Button_t *btn, uint16_t x, uint16_t y)
 {
@@ -164,11 +140,7 @@ static uint8_t Button_HitTest(const Button_t *btn, uint16_t x, uint16_t y)
     return 0;
 }
 
-static void DebugPrintTouch(uint16_t x, uint16_t y, STMPE811_State_t state)
-{
-    (void)state; // state is not used for now, but kept for future debugging
-    printf("Touch: x=%u y=%u\r\n", (unsigned)x, (unsigned)y);
-}
+//draw functions
 
 static void DrawHomeScreen(void)
 {
@@ -180,14 +152,12 @@ static void DrawHomeScreen(void)
     snprintf(buf, sizeof(buf), "Balance: $%ld", (long)Bank_GetBalance());
     LCD_Draw_String(40, 60, buf);
 
-    // Blackjack button
     LCD_Draw_Button(
         gHomeBlackjackBtn.x, gHomeBlackjackBtn.y,
         gHomeBlackjackBtn.w, gHomeBlackjackBtn.h,
         LCD_COLOR_GREEN, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
         "Blackjack");
 
-    // Roulette button
     LCD_Draw_Button(
         gHomeRouletteBtn.x, gHomeRouletteBtn.y,
         gHomeRouletteBtn.w, gHomeRouletteBtn.h,
@@ -197,73 +167,45 @@ static void DrawHomeScreen(void)
 
 static void DrawBlackjackScreen(void)
 {
-    printf("GD: Enter DrawBlackjackScreen (menu)\r\n");
-
     gBlackjackRoundActive = 0;
-
-    // Optional: clear/reset internal blackjack state
     Blackjack_Reset();
 
-    // Green background + title
     LCD_Clear(LCD_COLOR_DARKGREEN);
     LCD_SetTextColor(LCD_COLOR_WHITE);
     LCD_Draw_String(20, 20, "Blackjack");
 
-    // "Start Round" button
     LCD_Draw_Button(
         gBlackjackStartBtn.x, gBlackjackStartBtn.y,
         gBlackjackStartBtn.w, gBlackjackStartBtn.h,
-        LCD_COLOR_LIGHTGREEN, // fill
-        LCD_COLOR_BLACK,      // border
-        LCD_COLOR_BLACK,      // text
+        LCD_COLOR_LIGHTGREEN, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
         "Start Round");
 
-    // Exit button (top-right)
     LCD_Draw_Button(
         gBlackjackExitBtn.x, gBlackjackExitBtn.y,
         gBlackjackExitBtn.w, gBlackjackExitBtn.h,
         LCD_COLOR_LIGHTGRAY, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
         "Exit");
-    printf("GD: Leave DrawBlackjackScreen (menu drawn)\r\n");
 }
 
 static void DrawBlackjackRoundScreen(void)
 {
-    printf("GD: Enter DrawBlackjackRoundScreen\r\n");
-
-    // Mark that we are in the round UI
     gBlackjackRoundActive = 1;
 
-    // NEW: start a fresh round (deal cards, set totals/state/status)
-    printf("GD: Calling Blackjack_StartNewRound\r\n");
     Blackjack_StartNewRound();
-    printf("GD: Returned from Blackjack_StartNewRound\r\n");
-
-    // Table background + Hit/Stand/New buttons
-    printf("GD: Calling Blackjack_DrawTable\r\n");
     Blackjack_DrawTable();
-    printf("GD: Returned from Blackjack_DrawTable\r\n");
-
-    // Dealer + player cards and status line
-    printf("GD: Calling Blackjack_DrawHands\r\n");
     Blackjack_DrawHands();
-    printf("GD: Returned from Blackjack_DrawHands\r\n");
 
-    // Exit button (top-right)
     LCD_Draw_Button(
         gBlackjackExitBtn.x, gBlackjackExitBtn.y,
         gBlackjackExitBtn.w, gBlackjackExitBtn.h,
         LCD_COLOR_LIGHTGRAY, LCD_COLOR_BLACK, LCD_COLOR_BLACK,
         "Exit");
-
-    printf("GD: Leave DrawBlackjackRoundScreen (round UI drawn)\r\n");
 }
 
 static void DrawRouletteScreen(void)
 {
     Roulette_DrawTable();
 
-    // Draw Exit button on top-right, same as before
     LCD_Draw_Button(
         gRouletteExitBtn.x, gRouletteExitBtn.y,
         gRouletteExitBtn.w, gRouletteExitBtn.h,
